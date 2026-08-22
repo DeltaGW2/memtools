@@ -692,7 +692,7 @@ namespace memtools
 		{
 			if (aTarget == nullptr) { throw "Target is nullptr."; }
 			if (aBytes == nullptr)  { throw "Patch Bytes are nullptr."; }
-			if (aSize == 0) { throw "Patch Bytes are size 0."; }
+			if (aSize == 0)         { throw "Patch Bytes are size 0."; }
 
 			this->Target = aTarget;
 			this->Size = aSize;
