@@ -43,6 +43,7 @@ Only if the pattern matches and all instructions are successful the address will
 - `PushAddr` - Stores the current address, to return to it. E.g. to check a string in a sub function and then continue navigating the callsite.
 - `PopAddr` - Restores the last pushed address and continues from there.
 - `AdvWcard` - Goes to the next *set* of wildcards. Important: Only works at top level of the pattern. Not when following. Does respect Offset operations.
+- `FuncEntry` - Goes to the beginning of the current function.
 
 ## Examples
 
