@@ -678,38 +678,43 @@ namespace memtools
 	///----------------------------------------------------------------------------------------------------
 	struct Patch
 	{
-		void*    Target        = nullptr;
-		uint8_t* OriginalBytes = nullptr;
-		uint64_t Size          = 0;
+		void*                Target = nullptr;
+		std::vector<uint8_t> OriginalBytes;
+		uint16_t             Size          = 0;
+
+		Patch(const Patch&) = delete;
+		Patch& operator=(const Patch&) = delete;
 
 		///----------------------------------------------------------------------------------------------------
 		/// ctor
 		///----------------------------------------------------------------------------------------------------
-		inline Patch(void* aTarget, const char* aBytes)
+		inline Patch(void* aTarget, const uint8_t* aBytes, uint16_t aSize)
 		{
 			if (aTarget == nullptr) { throw "Target is nullptr."; }
 			if (aBytes == nullptr)  { throw "Patch Bytes are nullptr."; }
+			if (aSize == 0) { throw "Patch Bytes are size 0."; }
 
 			this->Target = aTarget;
-			this->Size = strlen(aBytes);
-
-			if (this->Size == 0) { throw "Patch Bytes are size 0."; }
+			this->Size = aSize;
+			this->OriginalBytes.resize(this->Size);
 
 			DWORD oldProtect;
-			if (VirtualProtect(aTarget, this->Size, PAGE_EXECUTE_READWRITE, &oldProtect))
+			if (VirtualProtect(this->Target, this->Size, PAGE_EXECUTE_READWRITE, &oldProtect))
 			{
-				/* Allocate buffer to hold the original bytes. */
-				this->OriginalBytes = new uint8_t[this->Size];
-
-				/* Copy the original bytes. */
-				memcpy(this->OriginalBytes, aTarget, this->Size);
-
-				/* Write the new bytes. */
-				memcpy(aTarget, aBytes, this->Size);
-
-				/* Restore page protection. */
-				VirtualProtect(aTarget, this->Size, oldProtect, &oldProtect);
+				throw "Failed to change page protection.";
 			}
+			
+			/* Copy the original bytes. */
+			memcpy(this->OriginalBytes.data(), this->Target, this->Size);
+
+			/* Write the new bytes. */
+			memcpy(this->Target, aBytes, this->Size);
+
+			/* Flush the instruction cache. */
+			FlushInstructionCache(GetCurrentProcess(), this->Target, this->Size);
+
+			/* Restore page protection. */
+			VirtualProtect(this->Target, this->Size, oldProtect, &oldProtect);
 		}
 
 		///----------------------------------------------------------------------------------------------------
@@ -717,18 +722,23 @@ namespace memtools
 		///----------------------------------------------------------------------------------------------------
 		inline ~Patch()
 		{
+			if (this->Target == nullptr || this->OriginalBytes.empty())
+			{
+				return;
+			}
+
 			DWORD oldProtect;
 			if (VirtualProtect(this->Target, this->Size, PAGE_EXECUTE_READWRITE, &oldProtect))
 			{
 				/* Restore original bytes. */
-				memcpy(this->Target, this->OriginalBytes, this->Size);
+				memcpy(this->Target, this->OriginalBytes.data(), this->Size);
+
+				/* Flush the instruction cache. */
+				FlushInstructionCache(GetCurrentProcess(), this->Target, this->Size);
 
 				/* Restore page protection. */
 				VirtualProtect(this->Target, this->Size, oldProtect, &oldProtect);
 			}
-
-			/* Delete the allocated buffer. */
-			delete this->OriginalBytes;
 		}
 	};
 }
