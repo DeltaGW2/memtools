@@ -249,7 +249,8 @@ namespace memtools
 		cmpi64,
 		pushaddr,
 		popaddr,
-		advwcard
+		advwcard,
+		funcentry
 	};
 
 	///----------------------------------------------------------------------------------------------------
@@ -373,6 +374,12 @@ namespace memtools
 	/// 	Pass aSets for how many amount of sets should be skipped.
 	///----------------------------------------------------------------------------------------------------
 	constexpr Instruction AdvWcard(int64_t aSets = 1) { return Instruction(EOperation::advwcard, aSets > 1 ? aSets : 1); }
+
+	///----------------------------------------------------------------------------------------------------
+	/// FuncEntry:
+	/// 	Moves to the beginning of the current function.
+	///----------------------------------------------------------------------------------------------------
+	constexpr Instruction FuncEntry() { return Instruction(EOperation::funcentry); }
 
 	///----------------------------------------------------------------------------------------------------
 	/// PatternScan Struct
@@ -586,6 +593,20 @@ namespace memtools
 
 									resultAddr = base + i + offsetFromMatch;
 
+									break;
+								}
+								case EOperation::funcentry:
+								{
+									DWORD64 imageBase = 0;
+									PRUNTIME_FUNCTION function = RtlLookupFunctionEntry(reinterpret_cast<DWORD64>(resultAddr), &imageBase, nullptr);
+
+									if (!function)
+									{
+										instructionsFailed++;
+										break;
+									}
+
+									resultAddr = reinterpret_cast<void*>(imageBase + function->BeginAddress);
 									break;
 								}
 								default:
