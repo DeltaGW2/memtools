@@ -699,7 +699,7 @@ namespace memtools
 			this->OriginalBytes.resize(this->Size);
 
 			DWORD oldProtect;
-			if (VirtualProtect(this->Target, this->Size, PAGE_EXECUTE_READWRITE, &oldProtect))
+			if (!VirtualProtect(this->Target, this->Size, PAGE_EXECUTE_READWRITE, &oldProtect))
 			{
 				throw "Failed to change page protection.";
 			}
